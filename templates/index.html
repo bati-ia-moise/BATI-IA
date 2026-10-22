@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1424">
+<title>BATI-IA Vision — Bureau d'études intelligent</title>
+
+<style>
+:root{
+  --bg:#09111f;
+  --panel:#111d30;
+  --panel-light:#17263d;
+  --line:#2a3b53;
+  --white:#f4f7fc;
+  --muted:#a6b5ca;
+  --cyan:#55e4d2;
+  --blue:#4c9dff;
+  --orange:#ffbf69;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--white);
+  font-family:Arial,Helvetica,sans-serif;line-height:1.6
+}
+button,input,select{font:inherit}
+button{cursor:pointer}
+a{color:inherit;text-decoration:none}
+.topbar{
+  min-height:76px;padding:15px 6%;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:20px;border-bottom:1px solid var(--line);
+  background:rgba(9,17,31,.96)
+}
+.brand{font-size:23px;font-weight:900;letter-spacing:.4px}
+.brand span{color:var(--cyan)}
+.brand small{
+  display:block;font-size:10px;letter-spacing:2px;
+  color:var(--muted);font-weight:500
+}
+.status{
+  border:1px solid #285c5c;background:#102c32;color:var(--cyan);
+  padding:7px 12px;border-radius:30px;font-size:12px
+}
+.hero{
+  padding:65px 6% 58px;
+  background:
+    radial-gradient(ellipse at 82% 28%,rgba(44,135,176,.23),transparent 38%),
+    linear-gradient(130deg,#0b1628,#0a1220 65%);
+  overflow:hidden
+}
+.hero-inner{
+  max-width:1250px;margin:auto;display:grid;
+  grid-template-columns:1.1fr .9fr;gap:35px;align-items:center
+}
+.eyebrow{
+  color:var(--cyan);font-size:12px;font-weight:bold;
+  letter-spacing:2.5px;text-transform:uppercase
+}
+h1{
+  font-size:clamp(36px,5.3vw,66px);line-height:1.08;
+  letter-spacing:-1.7px;margin:17px 0
+}
+h1 span{color:var(--cyan)}
+.hero-copy{max-width:630px;color:var(--muted);font-size:17px}
+.button-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:27px}
+.btn{
+  border:0;border-radius:10px;padding:13px 18px;
+  font-weight:bold;display:inline-flex;align-items:center;
+  justify-content:center;gap:8px
+}
+.btn-primary{
+  color:#061720;background:linear-gradient(110deg,var(--cyan),#80f0d9)
+}
+.btn-secondary{
+  color:var(--white);background:#142238;border:1px solid var(--line)
+}
+.btn:hover{filter:brightness(1.08)}
+.hero-note{font-size:12px;color:var(--muted);margin-top:17px}
+.blueprint{
+  position:relative;min-height:315px;padding:22px;
+  border:1px solid #31506a;border-radius:22px;
+  background:linear-gradient(145deg,#142b42,#0c1829);
+  box-shadow:0 25px 70px rgba(0,0,0,.25)
+}
+.blueprint-label{
+  font-size:11px;letter-spacing:1.5px;color:var(--cyan);
+  display:flex;justify-content:space-between;gap:10px
+}
+.blueprint svg{width:100%;height:auto;display:block;margin-top:15px}
+.blueprint-foot{
+  display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  color:var(--muted);font-size:11px;border-top:1px solid var(--line);
+  padding-top:13px
+}
+main{max-width:1250px;margin:auto;padding:42px 6% 65px}
+.section-head{margin-bottom:22px}
+.section-head h2{font-size:28px;margin:0 0 5px}
+.section-head p{color:var(--muted);margin:0}
+.features{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:15px;margin-bottom:48px
+}
+.feature{
+  border:1px solid var(--line);background:var(--panel);
+  border-radius:15px;padding:21px
+}
+.feature-icon{
+  width:46px;height:46px;border-radius:12px;
+  display:grid;place-items:center;background:#18344a;font-size:23px
+}
+.feature h3{margin:14px 0 7px;font-size:17px}
+.feature p{color:var(--muted);font-size:14px;margin:0}
+.workspace{
+  display:grid;grid-template-columns:1fr 1fr;gap:18px;
+  align-items:start
+}
+.card{
+  border:1px solid var(--line);background:var(--panel);
+  border-radius:17px;padding:23px;min-width:0
+}
+.card-heading{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.step{
+  flex-shrink:0;width:38px;height:38px;border-radius:11px;
+  display:grid;place-items:center;background:#16374a;
+  color:var(--cyan);font-weight:900
+}
+.card-heading h3{margin:0;font-size:18px}
+.card-heading p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+label.field-label{display:block;color:#d5e0ef;font-size:13px;margin:15px 0 7px}
+input[type="number"],select{
+  width:100%;min-width:0;padding:12px;background:#0b1627;
+  border:1px solid var(--line);border-radius:9px;color:var(--white)
+}
+input:focus,select:focus{outline:1px solid var(--cyan);border-color:var(--cyan)}
+.upload{
+  border:1px dashed #426780;background:#0b1829;border-radius:13px;
+  text-align:center;padding:23px 15px
+}
+.upload-icon{font-size:32px}
+.upload strong{display:block;margin-top:5px}
+.upload p{font-size:12px;color:var(--muted);margin:5px 0 14px}
+.upload input[type="file"]{
+  display:block;width:100%;max-width:340px;margin:0 auto;
+  color:var(--muted);font-size:12px
+}
+#fileStatus{font-size:12px;color:var(--cyan);margin-top:12px;overflow-wrap:anywhere}
+#imagePreview{
+  display:none;max-width:100%;max-height:260px;
+  margin:15px auto 0;border-radius:8px
+}
+.hint{font-size:12px;color:var(--muted);margin:10px 0 0}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mode{
+  display:block;padding:13px;border:1px solid var(--line);
+  background:#0b1627;border-radius:11px;cursor:pointer
+}
+.mode:has(input:checked){border-color:var(--cyan);background:#102b32}
+.mode input{accent-color:var(--cyan)}
+.mode strong{display:block;font-size:13px;margin:5px 0}
+.mode small{display:block;font-size:11px;color:var(--muted);line-height:1.5}
+#modeNotice{
+  padding:11px;background:#102331;border-radius:9px;
+  border-left:3px solid var(--blue);font-size:12px;color:#c7d9ed;margin-top:12px
+}
+.two-fields{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.actions-column{display:grid;gap:10px;margin-top:20px}
+.actions-column .btn{width:100%}
+.error{
+  display:none;margin-top:14px;padding:12px;border-radius:9px;
+  background:#3a2026;border:1px solid #743943;color:#ffd5d8;font-size:13px
+}
+.results{display:none;margin-top:22px}
+.results h3{margin-top:0}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.metric{
+  background:#0b1728;border:1px solid var(--line);
+  padding:15px;border-radius:12px
+}
+.metric span{display:block;color:var(--muted);font-size:12px}
+.metric strong{display:block;font-size:23px;overflow-wrap:anywhere;margin-top:4px}
+.formula-box{
+  padding:14px;background:#0b1728;border-radius:10px;
+  border:1px solid var(--line);margin-top:15px
+}
+.formula-box h4{margin:0 0 8px}
+.formula{font-family:monospace;color:var(--cyan);overflow-wrap:anywhere}
+.warning{
+  padding:13px;background:#302719;border:1px solid #69512d;
+  color:#ffdda2;border-radius:10px;font-size:12px;margin-top:14px
+}
+footer{
+  padding:25px 6%;text-align:center;border-top:1px solid var(--line);
+  color:var(--muted);font-size:12px
+}
+@media(max-width:850px){
+  .hero-inner{grid-template-columns:1fr}
+  .blueprint{max-width:600px}
+  .features{grid-template-columns:1fr}
+  .workspace{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  .topbar{padding:13px 5%}
+  .status{font-size:10px}
+  .hero{padding:43px 5%}
+  main{padding:30px 5% 45px}
+  .card{padding:17px}
+  .modes{grid-template-columns:1fr}
+  .two-fields,.result-grid{grid-template-columns:1fr}
+  h1{letter-spacing:-.8px}
+}
+</style>
+</head>
+
+<body>
+<header class="topbar">
+  <a class="brand" href="#">
+    BATI-IA <span>VISION</span>
+    <small>CONSTRUCTION • CALCUL • INNOVATION</small>
+  </a>
+  <div class="status">● Espace d'étude BTP</div>
+</header>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="eyebrow">Le génie civil entre dans une nouvelle dimension</div>
+      <h1>Comprends tes plans.<br><span>Maîtrise tes métrés.</span></h1>
+      <p class="hero-copy">
+        Un espace de travail pour étudier les ouvrages de génie civil,
+        préparer les calculs de volumes et de surfaces, et organiser les
+        données nécessaires à tes métrés.
+      </p>
+      <div class="button-row">
+        <button class="btn btn-primary" onclick="allerAnalyse()">Démarrer une étude <span>→</span></button>
+        <a class="btn btn-secondary" href="#outils">Découvrir les outils</a>
+      </div>
+      <p class="hero-note">Plans PDF et images • Calculs géométriques • Résultats vérifiables</p>
+    </div>
+
+    <div class="blueprint">
+      <div class="blueprint-label">
+        <span>APERÇU TECHNIQUE</span>
+        <span>DALOT EN BÉTON</span>
+      </div>
+      <svg viewBox="0 0 440 290" role="img" aria-label="Illustration technique stylisée d'un dalot en béton">
+        <defs>
+          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M20 0H0V20" fill="none" stroke="#29445c" stroke-width=".7"/>
+          </pattern>
+        </defs>
+        <rect width="440" height="290" fill="url(#grid)" rx="8"/>
+        <g fill="none" stroke="#66e7dc" stroke-width="2">
+          <path d="M92 75H275V205H92Z"/>
+          <path d="M92 75L137 45H320L275 75"/>
+          <path d="M275 75L320 45V175L275 205"/>
+          <path d="M92 75L137 45V175L92 205"/>
+          <path d="M137 175H320"/>
+          <path d="M137 45V175"/>
+          <path d="M92 205L137 175"/>
+          <path d="M275 205L320 175"/>
+        </g>
+        <g fill="none" stroke="#4c9dff" stroke-width="1.3">
+          <path d="M92 226V244M275 226V244M92 238H275"/>
+          <path d="M92 238l8 -4v8zM275 238l-8 -4v8z" fill="#4c9dff"/>
+          <path d="M335 45H355M335 205H355M348 45V205"/>
+          <path d="M348 45l-4 8h8zM348 205l-4 -8h8z" fill="#4c9dff"/>
+          <path d="M80 65L60 49M137 35L119 20"/>
+        </g>
+        <g fill="#dceeff" font-size="12" font-family="Arial">
+          <text x="170" y="258">Longueur</text>
+          <text x="358" y="130" transform="rotate(90 358 130)">Hauteur</text>
+          <text x="27" y="40">Coupe</text>
+          <text x="27" y="55">indicative</text>
+        </g>
+        <g fill="#ffbf69">
+          <circle cx="92" cy="75" r="3"/><circle cx="275" cy="205" r="3"/>
+          <circle cx="320" cy="45" r="3"/>
+        </g>
+      </svg>
+      <div class="blueprint-foot">
+        <span>Vues et sections</span>
+        <span>Volumes & surfaces</span>
+        <span>Étude technique</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<main>
+  <section id="outils">
+    <div class="section-head">
+      <h2>Un espace conçu pour le BTP</h2>
+      <p>Commence avec les outils de calcul, puis développe ton étude.</p>
+    </div>
+    <div class="features">
+      <article class="feature">
+        <div class="feature-icon">📐</div>
+        <h3>Plans et coupes</h3>
+        <p>Choisis un document technique pour le consulter pendant ton étude.</p>
+      </article>
+      <article class="feature">
+        <div class="feature-icon">🏗️</div>
+        <h3>Volumes et surfaces</h3>
+        <p>Calcule les dimensions géométriques et multiplie par le nombre d'éléments identiques.</p>
+      </article>
+      <article class="feature">
+        <div class="feature-icon">🔍</div>
+        <h3>Vérification des données</h3>
+        <p>Consulte les formules et vérifie les dimensions avant d'utiliser les résultats.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="analyse">
+    <div class="section-head">
+      <h2>Nouvelle étude</h2>
+      <p>Étape 1 : document. Étape 2 : dimensions. Étape 3 : résultats.</p>
+    </div>
+
+    <div class="workspace">
+      <article class="card">
+        <div class="card-heading">
+          <div class="step">01</div>
+          <div>
+            <h3>Document technique</h3>
+            <p>Plan, coupe ou détail d'ouvrage</p>
+          </div>
+        </div>
+
+        <label class="field-label" for="plan">Importer un plan PDF ou une image</label>
+        <div class="upload">
+          <div class="upload-icon">📁</div>
+          <strong>Choisis ton document</strong>
+          <p>PDF, JPG, JPEG, PNG ou WEBP — 15 Mo maximum</p>
+          <input id="plan" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp">
+          <div id="fileStatus" aria-live="polite"></div>
+          <img id="imagePreview" alt="Aperçu du plan sélectionné">
+        </div>
+        <p class="hint">Prototype local : l'image est affichée dans ton navigateur. Le PDF est sélectionné mais son aperçu intégré n'est pas encore disponible.</p>
+
+        <div class="card-heading" style="margin-top:29px;margin-bottom:13px">
+          <div class="step">02</div>
+          <div>
+            <h3>Mode d'analyse</h3>
+            <p>Choisis comment préparer ton étude</p>
+          </div>
+        </div>
+
+        <div class="modes">
+          <label class="mode">
+            <input type="radio" name="mode" value="assiste" checked>
+            <strong>Analyse assistée</strong>
+            <small>Tu lis les cotes et confirmes les dimensions.</small>
+          </label>
+          <label class="mode">
+            <input type="radio" name="mode" value="auto">
+            <strong>Automatique maximale</strong>
+            <small>Prévue pour la future reconnaissance par IA.</small>
+          </label>
+        </div>
+        <div id="modeNotice">
+          Analyse assistée : saisis les dimensions relevées sur le plan. Tu peux vérifier les résultats avant de les utiliser.
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-heading">
+          <div class="step">03</div>
+          <div>
+            <h3>Paramètres de calcul</h3>
+            <p>Dimensions en mètres (m)</p>
+          </div>
+        </div>
+
+        <label class="field-label" for="shape">Forme géométrique</label>
+        <select id="shape">
+          <option value="pave">Pavé droit / dalle rectangulaire</option>
+          <option value="cube">Cube</option>
+          <option value="cylinder">Cylindre</option>
+          <option value="pyramid">Pyramide à base carrée</option>
+          <option value="cone">Cône</option>
+          <option value="prism">Prisme droit à base triangulaire</option>
+        </select>
+
+        <div id="dimensionFields"></div>
+
+        <label class="field-label" for="count">Nombre de parties identiques (n)</label>
+        <input id="count" type="number" min="1" step="1" value="1">
+
+        <p class="hint">Pour un ouvrage composé de plusieurs solides, calcule chaque partie séparément. Évite de compter deux fois une même zone.</p>
+
+        <div class="actions-column">
+          <button id="calculate" class="btn btn-primary">Calculer les résultats →</button>
+          <button id="reset" class="btn btn-secondary">Réinitialiser l'étude</button>
+        </div>
+        <div id="error" class="error" role="alert"></div>
+      </article>
+    </div>
+
+    <section id="results" class="card results" aria-live="polite">
+      <div class="card-heading">
+        <div class="step">✓</div>
+        <div>
+          <h3>Résultats du calcul</h3>
+          <p id="resultSubtitle"></p>
+        </div>
+      </div>
+
+      <div class="result-grid">
+        <div class="metric">
+          <span>Volume d'une partie</span>
+          <strong id="unitVolume">—</strong>
+        </div>
+        <div class="metric">
+          <span>Volume total</span>
+          <strong id="totalVolume">—</strong>
+        </div>
+        <div class="metric">
+          <span>Surface totale théorique</span>
+          <strong id="totalArea">—</strong>
+        </div>
+        <div class="metric">
+          <span>Nombre de parties</span>
+          <strong id="resultCount">—</strong>
+        </div>
+      </div>
+
+      <div class="formula-box">
+        <h4>Formules utilisées</h4>
+        <div id="formula" class="formula"></div>
+      </div>
+
+      <div class="warning">
+        <strong>Important :</strong> la surface calculée est la surface géométrique totale du solide, pas nécessairement la surface de coffrage. Les ouvertures, joints, recouvrements et règles de métré ne sont pas pris en compte. Vérifie les résultats avant toute utilisation professionnelle.
+      </div>
+    </section>
+  </section>
+</main>
+
+<footer>
+  <strong>BATI-IA VISION</strong> — Outil de calcul géométrique pour le BTP.<br>
+  Cette version est un prototype de démonstration, pas un logiciel de validation structurelle.
+</footer>
+
+<script>
+const definitions = {
+  pave: {
+    name:"Pavé droit / dalle rectangulaire",
+    fields:[
+      ["length","Longueur L (m)"],
+      ["width","Largeur l (m)"],
+      ["height","Hauteur h (m)"]
+    ]
+  },
+  cube:{
+    name:"Cube",
+    fields:[["side","Côté a (m)"]]
+  },
+  cylinder:{
+    name:"Cylindre",
+    fields:[["radius","Rayon r (m)"],["height","Hauteur h (m)"]]
+  },
+  pyramid:{
+    name:"Pyramide à base carrée",
+    fields:[["side","Côté de la base a (m)"],["height","Hauteur verticale h (m)"]]
+  },
+  cone:{
+    name:"Cône",
+    fields:[["radius","Rayon de la base r (m)"],["height","Hauteur verticale h (m)"]]
+  },
+  prism:{
+    name:"Prisme droit à base triangulaire",
+    fields:[
+      ["base","Base du triangle b (m)"],
+      ["triangleHeight","Hauteur du triangle ht (m)"],
+      ["side2","Deuxième côté du triangle (m)"],
+      ["side3","Troisième côté du triangle (m)"],
+      ["length","Longueur du prisme L (m)"]
+    ]
+  }
+};
+
+const fieldArea = document.getElementById("dimensionFields");
+const shapeSelect = document.getElementById("shape");
+const results = document.getElementById("results");
+const errorBox = document.getElementById("error");
+const fileInput = document.getElementById("plan");
+const fileStatus = document.getElementById("fileStatus");
+const imagePreview = document.getElementById("imagePreview");
+
+function buildFields(){
+  const item = definitions[shapeSelect.value];
+  fieldArea.innerHTML = "";
+  item.fields.forEach(([id,label])=>{
+    const wrapper = document.createElement("div");
+    const lab = document.createElement("label");
+    lab.className = "field-label";
+    lab.htmlFor = "dim_" + id;
+    lab.textContent = label;
+
+    const input = document.createElement("input");
+    input.type = "number";
+    input.id = "dim_" + id;
+    input.min = "0";
+    input.step = "any";
+    input.placeholder = "Saisir une valeur";
+    input.required = true;
+
+    wrapper.append(lab,input);
+    fieldArea.appendChild(wrapper);
+  });
+  results.style.display = "none";
+  errorBox.style.display = "none";
+}
+shapeSelect.addEventListener("change",buildFields);
+buildFields();
+
+document.querySelectorAll('input[name="mode"]').forEach(radio=>{
+  radio.addEventListener("change",()=>{
+    const auto = document.querySelector('input[name="mode"]:checked').value === "auto";
+    document.getElementById("modeNotice").textContent = auto
+      ? "Mode automatique sélectionné. Attention : la reconnaissance automatique par IA n'est pas encore activée. Pour l'instant, les dimensions doivent être saisies manuellement."
+      : "Mode assisté : relève les cotes du plan, saisis-les et vérifie les résultats avant de les utiliser.";
+  });
+});
+
+fileInput.addEventListener("change",()=>{
+  const file = fileInput.files[0];
+  imagePreview.style.display = "none";
+  imagePreview.removeAttribute("src");
+  fileStatus.textContent = "";
+  if(!file) return;
+
+  const allowed = ["application/pdf","image/jpeg","image/png","image/webp"];
+  if(!allowed.includes(file.type)){
+    fileStatus.textContent = "Format non pris en charge. Choisis un PDF ou une image JPG, PNG ou WEBP.";
+    fileInput.value = "";
+    return;
+  }
+  if(file.size > 15*1024*1024){
+    fileStatus.textContent = "Le fichier dépasse 15 Mo. Choisis un document plus léger.";
+    fileInput.value = "";
+    return;
+  }
+  fileStatus.textContent = "Document sélectionné : " + file.name;
+
+  if(file.type.startsWith("image/")){
+    const reader = new FileReader();
+    reader.onload = event=>{
+      imagePreview.src = event.target.result;
+      imagePreview.style.display = "block";
+    };
+    reader.readAsDataURL(file);
+  }else{
+    fileStatus.textContent += " — Le PDF est sélectionné, mais son aperçu n'est pas encore intégré.";
+  }
+});
+
+function getValue(id,label){
+  const input = document.getElementById("dim_" + id);
+  const value = Number(input.value);
+  if(input.value.trim()==="" || !Number.isFinite(value) || value<=0){
+    input.focus();
+    throw new Error("Veuillez saisir une valeur positive pour : " + label + ".");
+  }
+  return value;
+}
+function numberFR(value){
+  return value.toLocaleString("fr-FR",{maximumFractionDigits:4});
+}
+function format(value,unit){
+  return numberFR(value) + " " + unit;
+}
+
+function calculate(){
+  errorBox.style.display = "none";
+  results.style.display = "none";
+
+  try{
+    const type = shapeSelect.value;
+    const def = definitions[type];
+    const count = Number(document.getElementById("count").value);
+    if(!Number.isInteger(count) || count<1){
+      throw new Error("Le nombre de parties doit être un entier supérieur ou égal à 1.");
+    }
+
+    let volume=0;
+    let area=0;
+    let formula="";
+
+    if(type==="pave"){
+      const L=getValue("length","longueur");
+      const l=getValue("width","largeur");
+      const h=getValue("height","hauteur");
+      volume=L*l*h;
+      area=2*(L*l+L*h+l*h);
+      formula="V = L × l × h ; S = 2 × (L × l + L × h + l × h)";
+    }
+    else if(type==="cube"){
+      const a=getValue("side","côté");
+      volume=a*a*a;
+      area=6*a*a;
+      formula="V = a³ ; S = 6 × a²";
+    }
+    else if(type==="cylinder"){
+      const r=getValue("radius","rayon");
+      const h=getValue("height","hauteur");
+      volume=Math.PI*r*r*h;
+      area=2*Math.PI*r*(r+h);
+      formula="V = π × r² × h ; S = 2 × π × r × (r + h)";
+    }
+    else if(type==="pyramid"){
+      const a=getValue("side","côté de la base");
+      const h=getValue("height","hauteur");
+      const slant=Math.sqrt(h*h+(a/2)*(a/2));
+      volume=a*a*h/3;
+      area=a*a+2*a*slant;
+      formula="V = a² × h / 3 ; S = a² + 2 × a × √(h² + (a/2)²)";
+    }
+    else if(type==="cone"){
+      const r=getValue("radius","rayon");
+      const h=getValue("height","hauteur");
+      const g=Math.sqrt(r*r+h*h);
+      volume=Math.PI*r*r*h/3;
+      area=Math.PI*r*(r+g);
+      formula="V = π × r² × h / 3 ; S = π × r × (r + √(r² + h²))";
+    }
+    else if(type==="prism"){
+      const b=getValue("base","base du triangle");
+      const ht=getValue("triangleHeight","hauteur du triangle");
+      const c2=getValue("side2","deuxième côté");
+      const c3=getValue("side3","troisième côté");
+      const L=getValue("length","longueur du prisme");
+      if(b+c2<=c3 || b+c3<=c2 || c2+c3<=b){
+        throw new Error("Les trois côtés saisis ne forment pas un triangle valide.");
+      }
+      const triangleArea=b*ht/2;
+      volume=triangleArea*L;
+      area=2*triangleArea+(b+c2+c3)*L;
+      formula="V = (b × ht / 2) × L ; S = 2 × aire du triangle + (b + c₂ + c₃) × L";
+      const triangleAreaHeron=Math.sqrt(
+        ((b+c2+c3)/2)*
+        (((b+c2+c3)/2)-b)*
+        (((b+c2+c3)/2)-c2)*
+        (((b+c2+c3)/2)-c3)
+      );
+      if(Math.abs(triangleArea-triangleAreaHeron)>0.01){
+        throw new Error("La hauteur du triangle semble incompatible avec les trois côtés saisis. Vérifie les données.");
+      }
+    }
+
+    if(!Number.isFinite(volume)||!Number.isFinite(area)){
+      throw new Error("Le calcul dépasse les limites numériques. Vérifie les dimensions.");
+    }
+
+    document.getElementById("resultSubtitle").textContent =
+      def.name + " — " + count + " partie(s) identique(s)";
+    document.getElementById("unitVolume").textContent = format(volume,"m³");
+    document.getElementById("totalVolume").textContent = format(volume*count,"m³");
+    document.getElementById("totalArea").textContent = format(area*count,"m²");
+    document.getElementById("resultCount").textContent = count;
+    document.getElementById("formula").textContent = formula;
+
+    results.style.display = "block";
+    results.scrollIntoView({behavior:"smooth",block:"start"});
+  }catch(error){
+    errorBox.textContent = error.message || "Une erreur est survenue.";
+    errorBox.style.display = "block";
+  }
+}
+
+function resetStudy(){
+  fileInput.value = "";
+  fileStatus.textContent = "";
+  imagePreview.style.display = "none";
+  imagePreview.removeAttribute("src");
+  document.getElementById("count").value = "1";
+  document.querySelector('input[name="mode"][value="assiste"]').checked = true;
+  document.getElementById("modeNotice").textContent =
+    "Analyse assistée : saisis les dimensions relevées sur le plan. Tu peux vérifier les résultats avant de les utiliser.";
+  shapeSelect.value = "pave";
+  buildFields();
+  errorBox.style.display = "none";
+  results.style.display = "none";
+}
+function allerAnalyse(){
+  document.getElementById("analyse").scrollIntoView({behavior:"smooth"});
+}
+
+document.getElementById("calculate").addEventListener("click",calculate);
+document.getElementById("reset").addEventListener("click",resetStudy);
+</script>
+</body>
+</html>

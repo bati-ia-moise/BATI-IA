@@ -1,0 +1,9 @@
+{
+  "short_name": "BATI-IA",
+  "name": "BATI-IA | Calculs et Devis BTP",
+  "start_url": "/",
+  "background_color": "#132b46",
+  "theme_color": "#132b46",
+  "display": "standalone",
+  "icons": []
+}
