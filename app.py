@@ -1,941 +1,905 @@
-from flask import Flask, request, session, render_template_string, send_file
-from math import pi, sqrt
-from io import BytesIO
-from datetime import datetime
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-from reportlab.lib.units import cm
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    PageBreak, KeepTogether
-)
-
-app = Flask(__name__)
-app.secret_key = "bati-ia-cle-locale-a-changer"
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+import math
+import csv
 
 
-# =========================================================
-# OUTILS DE CALCUL
-# =========================================================
+class BatiIA:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("BATI-IA - Assistant BTP")
+        self.root.geometry("1050x720")
+        self.root.minsize(850, 600)
 
-def number(value, default=0):
-    try:
-        result = float(value)
-        if result < 0:
-            return default
-        return result
-    except (TypeError, ValueError):
-        return default
+        self.volume_unitaire = 0.0
+        self.nombre_parts = 1
+        self.dimensions = {}
+        self.materiaux = []
+        self.devis = []
 
+        self.devise = tk.StringVar(value="DH")
 
-def fmt(value):
-    return f"{value:,.3f}".replace(",", " ").replace(".", ",")
+        ttk.Label(
+            root,
+            text="BATI-IA | Assistant de calcul BTP",
+            font=("Arial", 18, "bold")
+        ).pack(pady=10)
 
+        self.onglets = ttk.Notebook(root)
+        self.onglets.pack(fill="both", expand=True, padx=10, pady=8)
 
-def calculate_shape(shape, a, b, c):
-    """Retourne volume, surface, formule et dimensions."""
+        self.page_geo = ttk.Frame(self.onglets, padding=10)
+        self.page_mat = ttk.Frame(self.onglets, padding=10)
+        self.page_devis = ttk.Frame(self.onglets, padding=10)
 
-    volume = 0.0
-    area = 0.0
-    formula = ""
+        self.onglets.add(self.page_geo, text="Géométrie")
+        self.onglets.add(self.page_mat, text="Matériaux")
+        self.onglets.add(self.page_devis, text="Devis")
 
-    if shape == "cube":
-        volume = a ** 3
-        area = 6 * a ** 2
-        formula = "V = a³ ; S = 6 × a²"
+        self.creer_geometrie()
+        self.creer_materiaux()
+        self.creer_devis()
 
-    elif shape == "pave":
-        volume = a * b * c
-        area = 2 * (a*b + a*c + b*c)
-        formula = "V = L × l × h ; S = 2(Ll + Lh + lh)"
+    # ---------------- GÉOMÉTRIE ----------------
 
-    elif shape == "cylinder":
-        volume = pi * a**2 * b
-        area = 2 * pi * a * (a + b)
-        formula = "V = π × r² × h ; S = 2πr(r + h)"
+    def creer_geometrie(self):
+        ttk.Label(
+            self.page_geo,
+            text="Calcul des surfaces et volumes",
+            font=("Arial", 13, "bold")
+        ).pack(anchor="w", pady=5)
 
-    elif shape == "cone":
-        volume = pi * a**2 * b / 3
-        slant = sqrt(a**2 + b**2)
-        area = pi * a * (a + slant)
-        formula = "V = π × r² × h / 3"
+        ligne = ttk.Frame(self.page_geo)
+        ligne.pack(fill="x", pady=5)
 
-    elif shape == "tri_prism":
-        # a = base du triangle, b = hauteur du triangle,
-        # c = longueur du prisme.
-        volume = (a * b / 2) * c
-        side = sqrt((a / 2)**2 + b**2)
-        area = a*b + c*(a + 2*side)
-        formula = "V = (base × hauteur du triangle / 2) × longueur"
+        ttk.Label(ligne, text="Figure ou solide :").pack(side="left")
 
-    elif shape == "square_pyramid":
-        # a = côté de base ; b = hauteur verticale.
-        volume = a**2 * b / 3
-        slant = sqrt((a/2)**2 + b**2)
-        area = a**2 + 2*a*slant
-        formula = "V = côté² × hauteur / 3"
+        self.figure = tk.StringVar(value="Pavé droit")
 
-    elif shape == "rect_pyramid":
-        # a = longueur de base, b = largeur de base,
-        # c = hauteur verticale.
-        volume = a * b * c / 3
-        slant_a = sqrt(c**2 + (b/2)**2)
-        slant_b = sqrt(c**2 + (a/2)**2)
-        area = a*b + a*slant_a + b*slant_b
-        formula = "V = longueur × largeur × hauteur / 3"
+        self.figures = [
+            "Carré",
+            "Rectangle",
+            "Triangle",
+            "Trapèze",
+            "Parallélogramme",
+            "Disque",
+            "Cube",
+            "Pavé droit",
+            "Prisme triangulaire",
+            "Prisme pentagonal",
+            "Prisme hexagonal",
+            "Cylindre",
+            "Cône",
+            "Tronc de cône",
+            "Pyramide à base carrée",
+            "Pyramide à base rectangulaire",
+            "Pyramide à base triangulaire",
+            "Pyramide à base pentagonale",
+            "Pyramide à base hexagonale",
+            "Tronc de pyramide à base carrée",
+            "Tas de cailloux (tronc de pyramide rectangulaire)",
+            "Sphère",
+            "Demi-sphère",
+            "Ellipsoïde"
+        ]
 
-    elif shape == "sphere":
-        volume = 4 * pi * a**3 / 3
-        area = 4 * pi * a**2
-        formula = "V = 4πr³ / 3 ; S = 4πr²"
+        self.liste_figures = ttk.Combobox(
+            ligne,
+            textvariable=self.figure,
+            values=self.figures,
+            state="readonly",
+            width=49
+        )
+        self.liste_figures.pack(side="left", padx=8)
+        self.liste_figures.bind(
+            "<<ComboboxSelected>>",
+            lambda event: self.afficher_champs()
+        )
 
-    elif shape == "hemisphere":
-        volume = 2 * pi * a**3 / 3
-        area = 3 * pi * a**2
-        formula = "V = 2πr³ / 3 ; S totale = 3πr²"
+        self.zone_champs = ttk.LabelFrame(
+            self.page_geo,
+            text="Dimensions",
+            padding=8
+        )
+        self.zone_champs.pack(fill="x", pady=8)
 
-    elif shape == "cone_frustum":
-        # a = rayon inférieur ; b = rayon supérieur ; c = hauteur.
-        volume = pi*c*(a**2 + a*b + b**2)/3
-        slant = sqrt(c**2 + (a-b)**2)
-        area = pi*(a+b)*slant + pi*a**2 + pi*b**2
-        formula = "V = πh(R² + Rr + r²) / 3"
+        ligne_n = ttk.Frame(self.page_geo)
+        ligne_n.pack(fill="x", pady=5)
 
-    elif shape == "rectangle_area":
-        area = a * b
-        formula = "S = longueur × largeur"
+        ttk.Label(
+            ligne_n,
+            text="Nombre de parties identiques n :"
+        ).pack(side="left")
 
-    elif shape == "square_area":
-        area = a**2
-        formula = "S = côté²"
+        self.var_n = tk.StringVar(value="1")
+        ttk.Entry(
+            ligne_n,
+            textvariable=self.var_n,
+            width=12
+        ).pack(side="left", padx=8)
 
-    elif shape == "triangle_area":
-        area = a * b / 2
-        formula = "S = base × hauteur / 2"
+        ttk.Button(
+            self.page_geo,
+            text="Calculer",
+            command=self.calculer
+        ).pack(anchor="w", pady=6)
 
-    elif shape == "trapezoid_area":
-        # a et b = côtés parallèles ; c = hauteur.
-        area = (a+b)*c/2
-        formula = "S = (grande base + petite base) × hauteur / 2"
+        # IMPORTANT : créer cette zone avant afficher_champs()
+        self.resultat_geo = tk.Text(
+            self.page_geo,
+            height=12,
+            wrap="word",
+            font=("Arial", 10)
+        )
+        self.resultat_geo.pack(fill="both", expand=True, pady=8)
+        self.resultat_geo.configure(state="disabled")
 
-    elif shape == "circle_area":
-        area = pi * a**2
-        formula = "S = πr²"
+        self.afficher_champs()
 
-    return {
-        "volume_one": volume,
-        "area_one": area,
-        "formula": formula
-    }
+    def afficher_champs(self):
+        for widget in self.zone_champs.winfo_children():
+            widget.destroy()
 
+        figure = self.figure.get()
 
-SHAPES = {
-    "cube": "Cube",
-    "pave": "Pavé droit",
-    "cylinder": "Cylindre",
-    "cone": "Cône",
-    "tri_prism": "Prisme à base triangulaire",
-    "square_pyramid": "Pyramide à base carrée",
-    "rect_pyramid": "Pyramide à base rectangulaire",
-    "sphere": "Sphère",
-    "hemisphere": "Demi-sphère",
-    "cone_frustum": "Tronc de cône",
-    "rectangle_area": "Rectangle — surface",
-    "square_area": "Carré — surface",
-    "triangle_area": "Triangle — surface",
-    "trapezoid_area": "Trapèze — surface",
-    "circle_area": "Disque — surface",
-}
+        liste_champs = {
+            "Carré": ["Côté"],
+            "Rectangle": ["Longueur", "Largeur"],
+            "Triangle": ["Base", "Hauteur"],
+            "Trapèze": ["Grande base", "Petite base", "Hauteur"],
+            "Parallélogramme": ["Base", "Hauteur"],
+            "Disque": ["Rayon"],
 
+            "Cube": ["Côté"],
+            "Pavé droit": ["Longueur", "Largeur", "Hauteur"],
 
-# =========================================================
-# LECTURE DU FORMULAIRE ET CALCULS
-# =========================================================
+            "Prisme triangulaire": [
+                "Base du triangle",
+                "Hauteur du triangle",
+                "Longueur du prisme"
+            ],
+            "Prisme pentagonal": [
+                "Côté du pentagone",
+                "Hauteur du prisme"
+            ],
+            "Prisme hexagonal": [
+                "Côté de l'hexagone",
+                "Hauteur du prisme"
+            ],
 
-def read_project(form):
-    project_name = form.get("project_name", "").strip() or "Projet sans nom"
-    client = form.get("client", "").strip() or "Non renseigné"
-    unit_currency = form.get("currency", "DH").strip() or "DH"
+            "Cylindre": ["Rayon", "Hauteur"],
+            "Cône": ["Rayon", "Hauteur"],
+            "Tronc de cône": [
+                "Grand rayon",
+                "Petit rayon",
+                "Hauteur"
+            ],
 
-    names = form.getlist("g_name[]")
-    shapes = form.getlist("g_shape[]")
-    counts = form.getlist("g_count[]")
-    values_a = form.getlist("g_a[]")
-    values_b = form.getlist("g_b[]")
-    values_c = form.getlist("g_c[]")
+            "Pyramide à base carrée": [
+                "Côté de la base",
+                "Hauteur"
+            ],
+            "Pyramide à base rectangulaire": [
+                "Longueur de base",
+                "Largeur de base",
+                "Hauteur"
+            ],
+            "Pyramide à base triangulaire": [
+                "Base du triangle",
+                "Hauteur du triangle",
+                "Hauteur de pyramide"
+            ],
+            "Pyramide à base pentagonale": [
+                "Côté du pentagone",
+                "Hauteur"
+            ],
+            "Pyramide à base hexagonale": [
+                "Côté de l'hexagone",
+                "Hauteur"
+            ],
 
-    geometries = []
+            "Tronc de pyramide à base carrée": [
+                "Grand côté",
+                "Petit côté",
+                "Hauteur"
+            ],
+            "Tas de cailloux (tronc de pyramide rectangulaire)": [
+                "Grande longueur",
+                "Grande largeur",
+                "Petite longueur",
+                "Petite largeur",
+                "Hauteur"
+            ],
 
-    for i in range(len(shapes)):
-        shape = shapes[i] if shapes[i] in SHAPES else "pave"
-        name = names[i].strip() if i < len(names) else ""
-        a = number(values_a[i] if i < len(values_a) else 0)
-        b = number(values_b[i] if i < len(values_b) else 0)
-        c = number(values_c[i] if i < len(values_c) else 0)
-        count = max(1, int(number(counts[i] if i < len(counts) else 1, 1)))
+            "Sphère": ["Rayon"],
+            "Demi-sphère": ["Rayon"],
+            "Ellipsoïde": [
+                "Demi-axe a",
+                "Demi-axe b",
+                "Demi-axe c"
+            ]
+        }
 
-        result = calculate_shape(shape, a, b, c)
-        geometries.append({
-            "name": name or SHAPES[shape],
-            "shape": shape,
-            "shape_label": SHAPES[shape],
-            "a": a, "b": b, "c": c,
-            "count": count,
-            "volume_one": result["volume_one"],
-            "area_one": result["area_one"],
-            "volume_total": result["volume_one"] * count,
-            "area_total": result["area_one"] * count,
-            "formula": result["formula"]
-        })
+        self.dimensions = {}
 
-    total_volume = sum(g["volume_total"] for g in geometries)
-    total_area = sum(g["area_total"] for g in geometries)
-    total_parts = sum(g["count"] for g in geometries)
+        for i, nom in enumerate(liste_champs.get(figure, [])):
+            ligne = i // 3
+            colonne = (i % 3) * 2
 
-    material_names = form.getlist("m_name[]")
-    material_units = form.getlist("m_unit[]")
-    material_bases = form.getlist("m_basis[]")
-    dosages = form.getlist("m_dosage[]")
-    wastes = form.getlist("m_waste[]")
-    material_prices = form.getlist("m_price[]")
+            ttk.Label(
+                self.zone_champs,
+                text=nom + " :"
+            ).grid(
+                row=ligne,
+                column=colonne,
+                sticky="w",
+                padx=5,
+                pady=5
+            )
 
-    materials = []
+            variable = tk.StringVar()
+            ttk.Entry(
+                self.zone_champs,
+                textvariable=variable,
+                width=15
+            ).grid(
+                row=ligne,
+                column=colonne + 1,
+                sticky="w",
+                padx=5,
+                pady=5
+            )
 
-    for i in range(len(material_names)):
-        name = material_names[i].strip()
-        if not name:
-            continue
+            self.dimensions[nom] = variable
 
-        unit = material_units[i] if i < len(material_units) else "unité"
-        basis = material_bases[i] if i < len(material_bases) else "m3"
-        dosage = number(dosages[i] if i < len(dosages) else 0)
-        waste = number(wastes[i] if i < len(wastes) else 0)
-        price = number(material_prices[i] if i < len(material_prices) else 0)
+        self.ecrire_resultat(
+            "Saisis toutes les dimensions, le nombre n, "
+            "puis clique sur Calculer."
+        )
 
-        details = []
-        installed = 0.0
+    def ecrire_resultat(self, texte):
+        self.resultat_geo.configure(state="normal")
+        self.resultat_geo.delete("1.0", "end")
+        self.resultat_geo.insert("end", texte)
+        self.resultat_geo.configure(state="disabled")
 
-        for g in geometries:
-            if basis == "m3":
-                base_quantity = g["volume_total"]
-            elif basis == "m2":
-                base_quantity = g["area_total"]
-            else:
-                base_quantity = g["count"]
+    def lire_dimensions(self):
+        valeurs = {}
 
-            quantity = base_quantity * dosage
-            installed += quantity
+        for nom, variable in self.dimensions.items():
+            valeur = float(variable.get().replace(",", "."))
 
-            details.append({
-                "geometry": g["name"],
-                "base_quantity": base_quantity,
-                "quantity": quantity
+            if valeur <= 0:
+                raise ValueError(
+                    "Toutes les dimensions doivent être positives."
+                )
+
+            valeurs[nom] = valeur
+
+        return valeurs
+
+    def calculer(self):
+        try:
+            d = self.lire_dimensions()
+            n = int(self.var_n.get())
+
+            if n < 1:
+                raise ValueError(
+                    "Le nombre n doit être un entier supérieur ou égal à 1."
+                )
+
+            f = self.figure.get()
+            pi = math.pi
+            surface = 0.0
+            volume = 0.0
+            formules = []
+
+            # FIGURES PLANES
+
+            if f == "Carré":
+                a = d["Côté"]
+                surface = a ** 2
+                formules.append("Aire = côté²")
+
+            elif f == "Rectangle":
+                L, l = d["Longueur"], d["Largeur"]
+                surface = L * l
+                formules.append("Aire = longueur × largeur")
+
+            elif f == "Triangle":
+                b, h = d["Base"], d["Hauteur"]
+                surface = b * h / 2
+                formules.append("Aire = base × hauteur / 2")
+
+            elif f == "Trapèze":
+                B = d["Grande base"]
+                b = d["Petite base"]
+                h = d["Hauteur"]
+                surface = (B + b) * h / 2
+                formules.append(
+                    "Aire = (grande base + petite base) × hauteur / 2"
+                )
+
+            elif f == "Parallélogramme":
+                surface = d["Base"] * d["Hauteur"]
+                formules.append("Aire = base × hauteur")
+
+            elif f == "Disque":
+                r = d["Rayon"]
+                surface = pi * r ** 2
+                formules.append("Aire = π × rayon²")
+
+            # SOLIDES SIMPLES
+
+            elif f == "Cube":
+                a = d["Côté"]
+                volume = a ** 3
+                surface = 6 * a ** 2
+                formules.append("Volume = côté³")
+                formules.append("Surface totale = 6 × côté²")
+
+            elif f == "Pavé droit":
+                L = d["Longueur"]
+                l = d["Largeur"]
+                h = d["Hauteur"]
+                volume = L * l * h
+                surface = 2 * (L*l + L*h + l*h)
+                formules.append(
+                    "Volume = longueur × largeur × hauteur"
+                )
+
+            elif f == "Prisme triangulaire":
+                b = d["Base du triangle"]
+                ht = d["Hauteur du triangle"]
+                longueur = d["Longueur du prisme"]
+                aire_base = b * ht / 2
+                volume = aire_base * longueur
+                surface = aire_base
+                formules.append(
+                    "Volume = aire triangulaire de base × longueur du prisme"
+                )
+                formules.append(
+                    "Surface affichée = aire d'une base seulement"
+                )
+
+            elif f in ("Prisme pentagonal", "Prisme hexagonal"):
+                if f == "Prisme pentagonal":
+                    cote = d["Côté du pentagone"]
+                    nb = 5
+                else:
+                    cote = d["Côté de l'hexagone"]
+                    nb = 6
+
+                h = d["Hauteur du prisme"]
+                aire_base = nb * cote**2 / (4 * math.tan(pi / nb))
+                volume = aire_base * h
+                surface = aire_base
+                formules.append(
+                    "Aire du polygone régulier = n × côté² / (4 tan(π/n))"
+                )
+                formules.append(
+                    "Surface affichée = aire d'une base seulement"
+                )
+
+            elif f == "Cylindre":
+                r, h = d["Rayon"], d["Hauteur"]
+                volume = pi * r**2 * h
+                surface = 2 * pi * r * (r + h)
+                formules.append("Volume = πr²h")
+
+            elif f == "Cône":
+                r, h = d["Rayon"], d["Hauteur"]
+                g = math.sqrt(r**2 + h**2)
+                volume = pi * r**2 * h / 3
+                surface = pi * r * (r + g)
+                formules.append("Volume = πr²h / 3")
+
+            elif f == "Tronc de cône":
+                R = d["Grand rayon"]
+                r = d["Petit rayon"]
+                h = d["Hauteur"]
+
+                if r >= R:
+                    raise ValueError(
+                        "Le petit rayon doit être inférieur au grand rayon."
+                    )
+
+                g = math.sqrt(h**2 + (R-r)**2)
+                volume = pi * h * (R**2 + R*r + r**2) / 3
+                surface = pi*(R**2 + r**2) + pi*(R+r)*g
+                formules.append("Volume = πh(R² + Rr + r²) / 3")
+
+            # PYRAMIDES SIMPLES
+
+            elif f.startswith("Pyramide à base"):
+                if f == "Pyramide à base carrée":
+                    a = d["Côté de la base"]
+                    h = d["Hauteur"]
+                    aire_base = a**2
+
+                elif f == "Pyramide à base rectangulaire":
+                    L = d["Longueur de base"]
+                    l = d["Largeur de base"]
+                    h = d["Hauteur"]
+                    aire_base = L * l
+
+                elif f == "Pyramide à base triangulaire":
+                    b = d["Base du triangle"]
+                    ht = d["Hauteur du triangle"]
+                    h = d["Hauteur de pyramide"]
+                    aire_base = b * ht / 2
+
+                elif f == "Pyramide à base pentagonale":
+                    a = d["Côté du pentagone"]
+                    h = d["Hauteur"]
+                    aire_base = 5 * a**2 / (4 * math.tan(pi/5))
+
+                else:
+                    a = d["Côté de l'hexagone"]
+                    h = d["Hauteur"]
+                    aire_base = 6 * a**2 / (4 * math.tan(pi/6))
+
+                volume = aire_base * h / 3
+                surface = aire_base
+                formules.append("Volume = aire de base × hauteur / 3")
+                formules.append(
+                    "Surface affichée = aire de base seulement"
+                )
+
+            # TRONC DE PYRAMIDE À BASE CARRÉE
+
+            elif f == "Tronc de pyramide à base carrée":
+                B = d["Grand côté"]
+                b = d["Petit côté"]
+                h = d["Hauteur"]
+
+                if b >= B:
+                    raise ValueError(
+                        "Le petit côté doit être inférieur au grand côté."
+                    )
+
+                A1 = B**2
+                A2 = b**2
+
+                # Volume exact du tronc droit à bases parallèles
+                volume = h * (A1 + A2 + math.sqrt(A1*A2)) / 3
+
+                # Surface latérale : 4 trapèzes isocèles
+                hauteur_face = math.sqrt(h**2 + ((B-b)/2)**2)
+                surface_laterale = 2 * (B+b) * hauteur_face
+                surface = A1 + A2 + surface_laterale
+
+                formules.append(
+                    "V = h × (A1 + A2 + √(A1 × A2)) / 3"
+                )
+                formules.append(
+                    "Surface totale = A1 + A2 + surface latérale"
+                )
+
+            # TAS DE CAILLOUX : TRONC DE PYRAMIDE RECTANGULAIRE
+
+            elif f == "Tas de cailloux (tronc de pyramide rectangulaire)":
+                L = d["Grande longueur"]
+                W = d["Grande largeur"]
+                l = d["Petite longueur"]
+                w = d["Petite largeur"]
+                h = d["Hauteur"]
+
+                if l >= L or w >= W:
+                    raise ValueError(
+                        "La petite base doit avoir une longueur et une "
+                        "largeur inférieures à celles de la grande base."
+                    )
+
+                A1 = L * W
+                A2 = l * w
+
+                # Volume d'un tas assimilé à un tronc de pyramide
+                volume = h * (
+                    A1 + A2 + math.sqrt(A1*A2)
+                ) / 3
+
+                # Hypothèse : tronc droit centré, bases parallèles
+                pente_longueur = math.sqrt(
+                    h**2 + ((W-w)/2)**2
+                )
+                pente_largeur = math.sqrt(
+                    h**2 + ((L-l)/2)**2
+                )
+
+                surface_laterale = (
+                    (L+l) * pente_longueur
+                    + (W+w) * pente_largeur
+                )
+
+                surface = A1 + A2 + surface_laterale
+
+                formules.append(
+                    "V = h × (A1 + A2 + √(A1 × A2)) / 3"
+                )
+                formules.append(
+                    "A1 = grande longueur × grande largeur"
+                )
+                formules.append(
+                    "A2 = petite longueur × petite largeur"
+                )
+                formules.append(
+                    "Modèle : tas assimilé à un tronc droit centré "
+                    "à bases rectangulaires parallèles."
+                )
+
+            # SPHÈRE, DEMI-SPHÈRE, ELLIPSOÏDE
+
+            elif f == "Sphère":
+                r = d["Rayon"]
+                volume = 4 * pi * r**3 / 3
+                surface = 4 * pi * r**2
+                formules.append("Volume = 4πr³ / 3")
+
+            elif f == "Demi-sphère":
+                r = d["Rayon"]
+                volume = 2 * pi * r**3 / 3
+                surface = 3 * pi * r**2
+                formules.append(
+                    "Volume = 2πr³ / 3 ; surface avec base plane = 3πr²"
+                )
+
+            elif f == "Ellipsoïde":
+                a = d["Demi-axe a"]
+                b = d["Demi-axe b"]
+                c = d["Demi-axe c"]
+
+                volume = 4 * pi * a * b * c / 3
+                surface = 4 * pi * (
+                    ((a*b)**1.6 + (a*c)**1.6 + (b*c)**1.6) / 3
+                )**(1/1.6)
+                formules.append("Volume = 4πabc / 3")
+                formules.append(
+                    "Surface = approximation de Knud Thomsen"
+                )
+
+            self.volume_unitaire = volume
+            self.nombre_parts = n
+
+            texte = f"Figure : {f}\n\n"
+            texte += "\n".join(formules) + "\n\n"
+
+            if surface > 0:
+                texte += f"Surface calculée : {surface:.4f} unité²\n"
+
+            if volume > 0:
+                texte += f"Volume d'une partie : {volume:.4f} unité³\n"
+                texte += f"Nombre de parties n : {n}\n"
+                texte += f"Volume total = n × V : {n*volume:.4f} unité³\n"
+
+            texte += "\nToutes les dimensions doivent utiliser la même unité."
+
+            if "Tas de cailloux" in f:
+                texte += (
+                    "\n\nAttention : un tas réel est souvent irrégulier. "
+                    "Le résultat est une estimation basée sur le modèle "
+                    "géométrique choisi."
+                )
+
+            self.ecrire_resultat(texte)
+            self.actualiser_materiaux()
+
+        except (ValueError, ZeroDivisionError) as erreur:
+            messagebox.showerror("Erreur de saisie", str(erreur))
+
+    # ---------------- MATÉRIAUX ----------------
+
+    def creer_materiaux(self):
+        ttk.Label(
+            self.page_mat,
+            text="Quantités de matériaux selon tes dosages",
+            font=("Arial", 13, "bold")
+        ).pack(anchor="w", pady=5)
+
+        form = ttk.Frame(self.page_mat)
+        form.pack(fill="x", pady=8)
+
+        self.nom_materiau = tk.StringVar()
+        self.unite_materiau = tk.StringVar(value="kg")
+        self.dosage_materiau = tk.StringVar()
+        self.volume_reference = tk.StringVar(value="1")
+
+        champs = [
+            ("Nom du matériau", self.nom_materiau),
+            ("Unité", self.unite_materiau),
+            ("Dosage que tu définis", self.dosage_materiau),
+            ("Volume de référence", self.volume_reference)
+        ]
+
+        for i, (label, variable) in enumerate(champs):
+            ttk.Label(form, text=label).grid(
+                row=i, column=0, sticky="w", padx=5, pady=4
+            )
+            ttk.Entry(
+                form, textvariable=variable, width=28
+            ).grid(row=i, column=1, sticky="w", padx=5, pady=4)
+
+        ttk.Button(
+            form,
+            text="Ajouter le matériau",
+            command=self.ajouter_materiau
+        ).grid(row=4, column=0, columnspan=2, pady=8)
+
+        self.table_materiaux = ttk.Treeview(
+            self.page_mat,
+            columns=("nom", "unite", "dosage", "reference", "quantite"),
+            show="headings"
+        )
+
+        colonnes = [
+            ("nom", "Matériau"),
+            ("unite", "Unité"),
+            ("dosage", "Dosage saisi"),
+            ("reference", "Volume de référence"),
+            ("quantite", "Quantité calculée")
+        ]
+
+        for col, titre in colonnes:
+            self.table_materiaux.heading(col, text=titre)
+            self.table_materiaux.column(col, width=150)
+
+        self.table_materiaux.pack(fill="both", expand=True, pady=8)
+
+        ttk.Button(
+            self.page_mat,
+            text="Actualiser les quantités",
+            command=self.actualiser_materiaux
+        ).pack(anchor="w")
+
+    def ajouter_materiau(self):
+        try:
+            nom = self.nom_materiau.get().strip()
+            unite = self.unite_materiau.get().strip()
+            dosage = float(
+                self.dosage_materiau.get().replace(",", ".")
+            )
+            reference = float(
+                self.volume_reference.get().replace(",", ".")
+            )
+
+            if not nom or not unite:
+                raise ValueError("Saisis le nom et l'unité du matériau.")
+
+            if dosage < 0 or reference <= 0:
+                raise ValueError(
+                    "Le dosage doit être positif ou nul et le volume "
+                    "de référence strictement positif."
+                )
+
+            self.materiaux.append({
+                "nom": nom,
+                "unite": unite,
+                "dosage": dosage,
+                "reference": reference
             })
 
-        purchase = installed * (1 + waste/100)
-        cost = purchase * price
+            self.actualiser_materiaux()
+            self.nom_materiau.set("")
+            self.dosage_materiau.set("")
 
-        materials.append({
-            "name": name,
-            "unit": unit,
-            "basis": basis,
-            "dosage": dosage,
-            "waste": waste,
-            "price": price,
-            "details": details,
-            "installed": installed,
-            "purchase": purchase,
-            "cost": cost
-        })
+        except ValueError as erreur:
+            messagebox.showerror("Erreur", str(erreur))
 
-    cost_names = form.getlist("c_name[]")
-    cost_quantities = form.getlist("c_qty[]")
-    cost_units = form.getlist("c_unit[]")
-    cost_prices = form.getlist("c_price[]")
-
-    other_costs = []
-
-    for i in range(len(cost_names)):
-        name = cost_names[i].strip()
-        if not name:
-            continue
-
-        qty = number(cost_quantities[i] if i < len(cost_quantities) else 0)
-        unit = cost_units[i] if i < len(cost_units) else "forfait"
-        price = number(cost_prices[i] if i < len(cost_prices) else 0)
-
-        other_costs.append({
-            "name": name,
-            "quantity": qty,
-            "unit": unit,
-            "price": price,
-            "total": qty * price
-        })
-
-    material_total = sum(m["cost"] for m in materials)
-    other_total = sum(c["total"] for c in other_costs)
-    grand_total = material_total + other_total
-
-    return {
-        "project_name": project_name,
-        "client": client,
-        "currency": unit_currency,
-        "date": datetime.now().strftime("%d/%m/%Y"),
-        "geometries": geometries,
-        "materials": materials,
-        "other_costs": other_costs,
-        "total_volume": total_volume,
-        "total_area": total_area,
-        "total_parts": total_parts,
-        "material_total": material_total,
-        "other_total": other_total,
-        "grand_total": grand_total
-    }
-
-
-# =========================================================
-# INTERFACE WEB
-# =========================================================
-
-PAGE = r"""
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BATI-IA | Calculs et devis BTP</title>
-<style>
-:root {
- --navy:#132b46; --blue:#1769aa; --orange:#f5a623;
- --bg:#f3f6fa; --white:#fff; --text:#263548; --muted:#66758a;
- --line:#dce4ee; --green:#16845b;
-}
-* {box-sizing:border-box}
-body {margin:0;background:var(--bg);color:var(--text);
- font-family:Arial,Helvetica,sans-serif;line-height:1.5}
-header {background:var(--navy);color:white;padding:16px 5%;
- display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
-.logo {font-size:25px;font-weight:900;letter-spacing:1px}
-.logo span {color:var(--orange)}
-nav {display:flex;gap:16px;flex-wrap:wrap}
-nav a {color:white;text-decoration:none;font-weight:bold;font-size:14px}
-.hero {padding:48px 6%;color:white;
- background:linear-gradient(90deg,rgba(9,29,49,.92),rgba(9,29,49,.45)),
- url('https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1600&q=80')
- center/cover}
-.hero h1 {font-size:clamp(30px,5vw,48px);margin:0 0 12px}
-.hero p {max-width:700px;font-size:17px}
-.container {max-width:1200px;margin:25px auto;padding:0 15px}
-.card {background:white;border:1px solid var(--line);border-radius:14px;
- padding:22px;margin-bottom:22px;box-shadow:0 5px 18px #10243b0b}
-h2 {margin-top:0;color:var(--navy)}
-h3 {color:var(--navy);margin-bottom:10px}
-label {display:block;font-size:13px;font-weight:bold;margin-bottom:5px}
-input,select {width:100%;padding:11px;border:1px solid #cbd5e1;
- border-radius:8px;background:white;color:var(--text);font-size:14px}
-input:focus,select:focus {outline:2px solid #b6d7f5;border-color:var(--blue)}
-.grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:13px}
-.entry {border:1px solid var(--line);border-radius:10px;padding:14px;margin:12px 0;
- background:#fbfdff}
-.entry-title {display:flex;justify-content:space-between;align-items:center;gap:10px}
-.btn {display:inline-block;border:0;border-radius:8px;padding:12px 17px;
- font-weight:bold;cursor:pointer;text-decoration:none;font-size:14px}
-.primary {background:var(--blue);color:white}
-.orange {background:var(--orange);color:#1d2939}
-.dark {background:var(--navy);color:white}
-.light {background:#e9f1f9;color:var(--navy)}
-.remove {background:#fee2e2;color:#991b1b;padding:7px 10px}
-.actions {display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-table {width:100%;border-collapse:collapse;font-size:13px;margin:12px 0}
-th,td {padding:10px;border:1px solid var(--line);text-align:left}
-th {background:#eaf1f8;color:var(--navy)}
-.table-wrap {overflow-x:auto}
-.metrics {display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
-.metric {padding:18px;border-radius:10px;background:#eef5fc}
-.metric small {color:var(--muted)}
-.metric strong {display:block;font-size:22px;color:var(--navy);margin-top:5px}
-.notice {padding:13px;border-radius:8px;background:#fff7e5;color:#75500b}
-.success {padding:13px;border-radius:8px;background:#e6f7ee;color:#176a49}
-footer {background:var(--navy);color:white;text-align:center;padding:24px;margin-top:35px}
-.muted {color:var(--muted);font-size:13px}
-@media(max-width:600px) {
- .card {padding:15px}.hero {padding:34px 6%}
- nav {gap:10px}.actions .btn {width:100%;text-align:center}
-}
-</style>
-</head>
-<body>
-<header>
- <div class="logo">BATI<span>-IA</span></div>
- <nav>
-  <a href="#geometrie">Géométrie</a>
-  <a href="#materiaux">Matériaux</a>
-  <a href="#couts">Coûts</a>
-  <a href="#resultats">Résultats</a>
- </nav>
-</header>
-<section class="hero">
- <h1>Le calcul BTP, plus simple.</h1>
- <p>Calcule les volumes et les surfaces, estime tes matériaux selon tes propres dosages
- et prépare des documents professionnels pour tes projets.</p>
- <a class="btn orange" href="#projet">Commencer un calcul</a>
-</section>
-
-<div class="container">
-<form method="post" action="/">
-<section class="card" id="projet">
- <h2>01 — Informations du projet</h2>
- <div class="grid">
-  <div><label>Nom du projet</label><input name="project_name" placeholder="Ex. Construction d'une maison" required></div>
-  <div><label>Client / maître d'ouvrage</label><input name="client" placeholder="Nom du client"></div>
-  <div><label>Devise</label>
-   <select name="currency"><option>DH</option><option>FCFA</option><option>EUR</option></select>
-  </div>
- </div>
-</section>
-
-<section class="card" id="geometrie">
- <h2>02 — Géométrie et quantités</h2>
- <p class="muted">Entre les dimensions en mètres. Pour une surface, le volume restera nul.
- Le nombre de parties multiplie le résultat d'un seul solide.</p>
- <div id="geometryRows">
-  <div class="entry geometry-row">
-   <div class="entry-title"><h3>Élément géométrique</h3><button type="button" class="btn remove" onclick="removeRow(this)">Supprimer</button></div>
-   <div class="grid">
-    <div><label>Désignation</label><input name="g_name[]" placeholder="Ex. Semelle S1"></div>
-    <div><label>Forme</label><select name="g_shape[]" onchange="updateDimensions(this)">
-     <option value="pave">Pavé droit</option><option value="cube">Cube</option>
-     <option value="cylinder">Cylindre</option><option value="cone">Cône</option>
-     <option value="tri_prism">Prisme triangulaire</option>
-     <option value="square_pyramid">Pyramide base carrée</option>
-     <option value="rect_pyramid">Pyramide base rectangulaire</option>
-     <option value="sphere">Sphère</option><option value="hemisphere">Demi-sphère</option>
-     <option value="cone_frustum">Tronc de cône</option>
-     <option value="rectangle_area">Rectangle — surface</option>
-     <option value="square_area">Carré — surface</option>
-     <option value="triangle_area">Triangle — surface</option>
-     <option value="trapezoid_area">Trapèze — surface</option>
-     <option value="circle_area">Disque — surface</option>
-    </select></div>
-    <div><label>Nombre de parties (n)</label><input name="g_count[]" type="number" min="1" step="1" value="1" required></div>
-   </div>
-   <div class="grid dimensions">
-    <div><label class="la">Longueur / rayon / côté a (m)</label><input name="g_a[]" type="number" min="0" step="any" value="1" required></div>
-    <div><label class="lb">Largeur / hauteur b (m)</label><input name="g_b[]" type="number" min="0" step="any" value="1"></div>
-    <div><label class="lc">Hauteur c (m)</label><input name="g_c[]" type="number" min="0" step="any" value="1"></div>
-   </div>
-   <p class="muted dim-help">a, b et c sont interprétés selon la forme sélectionnée.</p>
-  </div>
- </div>
- <button type="button" class="btn light" onclick="addGeometry()">+ Ajouter un solide ou une surface</button>
-</section>
-
-<section class="card" id="materiaux">
- <h2>03 — Matériaux et dosages</h2>
- <div class="notice">Tu définis toi-même le dosage. BATI-IA ne choisit pas automatiquement le dosage du béton,
- du mortier ou d'un autre matériau. Vérifie les unités et les spécifications de ton projet.</div>
- <div id="materialRows">
-  <div class="entry material-row">
-   <div class="entry-title"><h3>Matériau</h3><button type="button" class="btn remove" onclick="removeRow(this)">Supprimer</button></div>
-   <div class="grid">
-    <div><label>Nom du matériau</label><input name="m_name[]" placeholder="Ex. Ciment"></div>
-    <div><label>Unité d'achat</label><input name="m_unit[]" value="sac"></div>
-    <div><label>Base de calcul</label><select name="m_basis[]">
-     <option value="m3">Par m³ de volume</option><option value="m2">Par m² de surface</option>
-     <option value="part">Par partie / élément</option></select></div>
-    <div><label>Dosage par unité de base</label><input name="m_dosage[]" type="number" min="0" step="any" value="0"></div>
-    <div><label>Pertes prévues (%)</label><input name="m_waste[]" type="number" min="0" step="any" value="0"></div>
-    <div><label>Prix par unité (devise choisie)</label><input name="m_price[]" type="number" min="0" step="any" value="0"></div>
-   </div>
-  </div>
- </div>
- <button type="button" class="btn light" onclick="addMaterial()">+ Ajouter un matériau</button>
-</section>
-
-<section class="card" id="couts">
- <h2>04 — Main-d'œuvre et autres coûts</h2>
- <p class="muted">Ajoute la main-d'œuvre, le transport, la location ou tout autre poste.
- Le montant est calculé par quantité × prix unitaire.</p>
- <div id="costRows">
-  <div class="entry cost-row">
-   <div class="entry-title"><h3>Poste de dépense</h3><button type="button" class="btn remove" onclick="removeRow(this)">Supprimer</button></div>
-   <div class="grid">
-    <div><label>Désignation</label><input name="c_name[]" placeholder="Ex. Main-d'œuvre"></div>
-    <div><label>Quantité</label><input name="c_qty[]" type="number" min="0" step="any" value="0"></div>
-    <div><label>Unité</label><input name="c_unit[]" value="forfait"></div>
-    <div><label>Prix unitaire</label><input name="c_price[]" type="number" min="0" step="any" value="0"></div>
-   </div>
-  </div>
- </div>
- <button type="button" class="btn light" onclick="addCost()">+ Ajouter un poste de dépense</button>
-</section>
-
-<div class="card">
- <h2>05 — Calculer et enregistrer</h2>
- <p class="muted">Enregistre les données de cette session pour afficher les résultats et générer les PDF.</p>
- <button type="submit" class="btn primary">Calculer tous les résultats</button>
-</div>
-</form>
-
-{% if data %}
-<section class="card" id="resultats">
- <h2>Résultats du projet : {{ data.project_name }}</h2>
- <div class="success">Calcul terminé. Tu peux télécharger le rapport de calcul ou le devis PDF ci-dessous.</div>
- <div class="metrics" style="margin-top:15px">
-  <div class="metric"><small>Volume total</small><strong>{{ fmt(data.total_volume) }} m³</strong></div>
-  <div class="metric"><small>Surface totale</small><strong>{{ fmt(data.total_area) }} m²</strong></div>
-  <div class="metric"><small>Nombre de parties</small><strong>{{ data.total_parts }}</strong></div>
-  <div class="metric"><small>Coût estimatif total</small><strong>{{ fmt(data.grand_total) }} {{ data.currency }}</strong></div>
- </div>
-
- <h3>Détail géométrique</h3>
- <div class="table-wrap"><table>
- <tr><th>Désignation</th><th>Forme</th><th>n</th><th>Volume total (m³)</th><th>Surface totale (m²)</th></tr>
- {% for g in data.geometries %}
- <tr><td>{{ g.name }}</td><td>{{ g.shape_label }}</td><td>{{ g.count }}</td>
- <td>{{ fmt(g.volume_total) }}</td><td>{{ fmt(g.area_total) }}</td></tr>
- {% endfor %}
- </table></div>
-
- <h3>Matériaux</h3>
- <div class="table-wrap"><table>
- <tr><th>Matériau</th><th>Dosage</th><th>Quantité installée</th><th>Quantité à acheter</th><th>Prix unitaire</th><th>Coût</th></tr>
- {% for m in data.materials %}
- <tr><td>{{ m.name }}</td><td>{{ fmt(m.dosage) }} / {{ m.basis }}</td>
- <td>{{ fmt(m.installed) }} {{ m.unit }}</td><td>{{ fmt(m.purchase) }} {{ m.unit }}</td>
- <td>{{ fmt(m.price) }}</td><td>{{ fmt(m.cost) }} {{ data.currency }}</td></tr>
- {% endfor %}
- </table></div>
-
- <h3>Autres dépenses</h3>
- <div class="table-wrap"><table>
- <tr><th>Désignation</th><th>Quantité</th><th>Unité</th><th>Prix unitaire</th><th>Total</th></tr>
- {% for c in data.other_costs %}
- <tr><td>{{ c.name }}</td><td>{{ fmt(c.quantity) }}</td><td>{{ c.unit }}</td>
- <td>{{ fmt(c.price) }}</td><td>{{ fmt(c.total) }} {{ data.currency }}</td></tr>
- {% endfor %}
- </table></div>
-
- <div class="metrics">
-  <div class="metric"><small>Total matériaux</small><strong>{{ fmt(data.material_total) }} {{ data.currency }}</strong></div>
-  <div class="metric"><small>Total autres coûts</small><strong>{{ fmt(data.other_total) }} {{ data.currency }}</strong></div>
-  <div class="metric"><small>Total général estimatif</small><strong>{{ fmt(data.grand_total) }} {{ data.currency }}</strong></div>
- </div>
-
- <div class="actions">
-  <a class="btn primary" href="/pdf/rapport">Télécharger le rapport de calcul PDF</a>
-  <a class="btn orange" href="/pdf/devis">Télécharger le devis PDF</a>
- </div>
- <p class="muted">Les résultats sont conservés dans la session du navigateur. Télécharge tes PDF avant de fermer la session.</p>
-</section>
-{% endif %}
-</div>
-
-<footer>
- <div class="logo">BATI<span>-IA</span></div>
- <p>Outil de calcul et d'estimation pour le BTP</p>
- <p>Réalisé par Moïse © 2026</p>
-</footer>
-
-<script>
-function removeRow(button) {
- const row = button.closest('.entry');
- const parent = row.parentElement;
- if (parent.children.length > 1) row.remove();
- else alert("Garde au moins une ligne dans cette section.");
-}
-
-function addGeometry() {
- const container = document.getElementById('geometryRows');
- const row = container.querySelector('.geometry-row').cloneNode(true);
- row.querySelectorAll('input').forEach(input => {
-   if (input.name === 'g_count[]') input.value = 1;
-   else input.value = '';
- });
- row.querySelector('select[name="g_shape[]"]').value = 'pave';
- container.appendChild(row);
- updateDimensions(row.querySelector('select[name="g_shape[]"]'));
-}
-
-function addMaterial() {
- const container = document.getElementById('materialRows');
- const row = container.querySelector('.material-row').cloneNode(true);
- row.querySelectorAll('input').forEach(input => {
-   if (input.name === 'm_unit[]') input.value = 'unité';
-   else if (input.name === 'm_waste[]' || input.name === 'm_price[]' ||
-            input.name === 'm_dosage[]') input.value = 0;
-   else input.value = '';
- });
- container.appendChild(row);
-}
-
-function addCost() {
- const container = document.getElementById('costRows');
- const row = container.querySelector('.cost-row').cloneNode(true);
- row.querySelectorAll('input').forEach(input => {
-   if (input.name === 'c_unit[]') input.value = 'forfait';
-   else if (input.name === 'c_qty[]' || input.name === 'c_price[]') input.value = 0;
-   else input.value = '';
- });
- container.appendChild(row);
-}
-
-function updateDimensions(select) {
- const row = select.closest('.geometry-row');
- const shape = select.value;
- const labels = row.querySelectorAll('.dimensions label');
- const inputs = row.querySelectorAll('.dimensions input');
- labels[0].textContent = 'Longueur / rayon / côté a (m)';
- labels[1].textContent = 'Largeur / hauteur b (m)';
- labels[2].textContent = 'Hauteur c (m)';
-
- if (['cube','square_area','circle_area','sphere','hemisphere'].includes(shape)) {
-   labels[0].textContent = shape.includes('circle') || shape === 'sphere' ||
-     shape === 'hemisphere' ? 'Rayon a (m)' : 'Côté a (m)';
-   labels[1].textContent = 'Non utilisé';
-   labels[2].textContent = 'Non utilisé';
- } else if (shape === 'cylinder' || shape === 'cone') {
-   labels[0].textContent = 'Rayon a (m)';
-   labels[1].textContent = 'Hauteur b (m)';
-   labels[2].textContent = 'Non utilisé';
- } else if (shape === 'cone_frustum') {
-   labels[0].textContent = 'Rayon inférieur a (m)';
-   labels[1].textContent = 'Rayon supérieur b (m)';
-   labels[2].textContent = 'Hauteur c (m)';
- } else if (shape === 'triangle_area') {
-   labels[0].textContent = 'Base a (m)';
-   labels[1].textContent = 'Hauteur b (m)';
-   labels[2].textContent = 'Non utilisé';
- } else if (shape === 'trapezoid_area') {
-   labels[0].textContent = 'Grande base a (m)';
-   labels[1].textContent = 'Petite base b (m)';
-   labels[2].textContent = 'Hauteur c (m)';
- } else if (shape === 'rectangle_area') {
-   labels[0].textContent = 'Longueur a (m)';
-   labels[1].textContent = 'Largeur b (m)';
-   labels[2].textContent = 'Non utilisé';
- } else if (shape === 'square_pyramid') {
-   labels[0].textContent = 'Côté de base a (m)';
-   labels[1].textContent = 'Hauteur verticale b (m)';
-   labels[2].textContent = 'Non utilisé';
- } else if (shape === 'rect_pyramid') {
-   labels[0].textContent = 'Longueur de base a (m)';
-   labels[1].textContent = 'Largeur de base b (m)';
-   labels[2].textContent = 'Hauteur verticale c (m)';
- } else if (shape === 'tri_prism') {
-   labels[0].textContent = 'Base du triangle a (m)';
-   labels[1].textContent = 'Hauteur du triangle b (m)';
-   labels[2].textContent = 'Longueur du prisme c (m)';
- }
-}
-document.querySelectorAll('.geometry-row select[name="g_shape[]"]').forEach(updateDimensions);
-</script>
-</body>
-</html>
-"""
-
-
-# =========================================================
-# CRÉATION DES PDF
-# =========================================================
-
-def make_pdf(data, document_type):
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer, pagesize=A4,
-        rightMargin=1.6*cm, leftMargin=1.6*cm,
-        topMargin=1.8*cm, bottomMargin=1.8*cm
-    )
-
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(
-        name="CoverTitle", parent=styles["Title"],
-        fontName="Helvetica-Bold", fontSize=27, leading=33,
-        textColor=colors.HexColor("#132b46"), alignment=TA_CENTER,
-        spaceAfter=15
-    ))
-    styles.add(ParagraphStyle(
-        name="SectionTitle", parent=styles["Heading2"],
-        textColor=colors.HexColor("#1769aa"),
-        spaceBefore=13, spaceAfter=8
-    ))
-    styles.add(ParagraphStyle(
-        name="SmallText", parent=styles["BodyText"],
-        fontSize=8, leading=10
-    ))
-
-    story = []
-    currency = data["currency"]
-    is_report = document_type == "rapport"
-    title = "RAPPORT DE CALCUL BTP" if is_report else "DEVIS ESTIMATIF BTP"
-
-    story += [
-        Spacer(1, 3.0*cm),
-        Paragraph("BATI-IA", styles["CoverTitle"]),
-        Paragraph(title, styles["Heading1"]),
-        Spacer(1, 1.0*cm)
-    ]
-
-    cover_data = [
-        ["Projet", data["project_name"]],
-        ["Client / maître d'ouvrage", data["client"]],
-        ["Date d'édition", data["date"]],
-        ["Document préparé par", "Moïse"]
-    ]
-    cover = Table(cover_data, colWidths=[6*cm, 9*cm])
-    cover.setStyle(TableStyle([
-        ("BACKGROUND", (0,0), (0,-1), colors.HexColor("#eaf1f8")),
-        ("TEXTCOLOR", (0,0), (0,-1), colors.HexColor("#132b46")),
-        ("FONTNAME", (0,0), (0,-1), "Helvetica-Bold"),
-        ("GRID", (0,0), (-1,-1), 0.5, colors.HexColor("#cbd5e1")),
-        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
-        ("PADDING", (0,0), (-1,-1), 10)
-    ]))
-    story += [
-        cover, Spacer(1, 1.2*cm),
-        Paragraph("Document généré par BATI-IA.", styles["BodyText"]),
-        Paragraph("Les dimensions, dosages, prix et hypothèses doivent être vérifiés par l'utilisateur.",
-                  styles["SmallText"]),
-        PageBreak()
-    ]
-
-    def add_table(title_text, headers, rows, widths=None):
-        story.append(Paragraph(title_text, styles["SectionTitle"]))
-        if not rows:
-            story.append(Paragraph("Aucune donnée renseignée.", styles["BodyText"]))
+    def actualiser_materiaux(self):
+        if not hasattr(self, "table_materiaux"):
             return
 
-        table_data = [headers] + rows
-        table = Table(table_data, colWidths=widths, repeatRows=1, hAlign="LEFT")
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#132b46")),
-            ("TEXTCOLOR", (0,0), (-1,0), colors.white),
-            ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
-            ("FONTSIZE", (0,0), (-1,-1), 8),
-            ("GRID", (0,0), (-1,-1), 0.4, colors.HexColor("#cbd5e1")),
-            ("ROWBACKGROUNDS", (0,1), (-1,-1),
-             [colors.white, colors.HexColor("#f3f6fa")]),
-            ("VALIGN", (0,0), (-1,-1), "TOP"),
-            ("LEFTPADDING", (0,0), (-1,-1), 5),
-            ("RIGHTPADDING", (0,0), (-1,-1), 5),
-            ("TOPPADDING", (0,0), (-1,-1), 6),
-            ("BOTTOMPADDING", (0,0), (-1,-1), 6)
-        ]))
-        story.append(table)
-        story.append(Spacer(1, 8))
+        for item in self.table_materiaux.get_children():
+            self.table_materiaux.delete(item)
 
-    if is_report:
-        story.append(Paragraph("1. Synthèse géométrique", styles["SectionTitle"]))
-        summary = [
-            ["Volume total", fmt(data["total_volume"]) + " m³"],
-            ["Surface totale", fmt(data["total_area"]) + " m²"],
-            ["Nombre total de parties", str(data["total_parts"])]
-        ]
-        table = Table(summary, colWidths=[7*cm, 7*cm])
-        table.setStyle(TableStyle([
-            ("BACKGROUND", (0,0), (0,-1), colors.HexColor("#eaf1f8")),
-            ("FONTNAME", (0,0), (0,-1), "Helvetica-Bold"),
-            ("GRID", (0,0), (-1,-1), 0.4, colors.HexColor("#cbd5e1")),
-            ("PADDING", (0,0), (-1,-1), 8)
-        ]))
-        story.append(table)
+        volume_total = self.volume_unitaire * self.nombre_parts
 
-        geom_rows = []
-        for g in data["geometries"]:
-            geom_rows.append([
-                g["name"], g["shape_label"], str(g["count"]),
-                fmt(g["a"]), fmt(g["b"]), fmt(g["c"]),
-                fmt(g["volume_one"]), fmt(g["volume_total"]),
-                fmt(g["area_total"])
-            ])
-        add_table(
-            "2. Détail des éléments géométriques",
-            ["Désignation", "Forme", "n", "a", "b", "c",
-             "V d'une partie", "V total", "S totale"],
-            geom_rows,
-            [2.5*cm, 2.2*cm, 0.7*cm, 1.0*cm, 1.0*cm,
-             1.0*cm, 1.7*cm, 1.5*cm, 1.5*cm]
-        )
-
-        story.append(Paragraph("3. Formules et calculs détaillés", styles["SectionTitle"]))
-        for g in data["geometries"]:
-            dimensions = f"a = {fmt(g['a'])} m ; b = {fmt(g['b'])} m ; c = {fmt(g['c'])} m"
-            text = (
-                f"<b>{g['name']}</b> — {g['shape_label']}<br/>"
-                f"Nombre de parties : n = {g['count']}<br/>"
-                f"Dimensions : {dimensions}<br/>"
-                f"Formule : {g['formula']}<br/>"
-                f"Volume d'une partie : {fmt(g['volume_one'])} m³<br/>"
-                f"Volume total : {fmt(g['volume_one'])} × {g['count']} = "
-                f"{fmt(g['volume_total'])} m³<br/>"
-                f"Surface totale : {fmt(g['area_one'])} × {g['count']} = "
-                f"{fmt(g['area_total'])} m²"
+        for materiau in self.materiaux:
+            quantite = (
+                materiau["dosage"] * volume_total
+                / materiau["reference"]
             )
-            story.append(KeepTogether([
-                Paragraph(text, styles["BodyText"]), Spacer(1, 10)
-            ]))
 
-        material_rows = []
-        for m in data["materials"]:
-            material_rows.append([
-                m["name"], m["basis"], fmt(m["dosage"]), fmt(m["installed"]),
-                fmt(m["waste"]) + "%", fmt(m["purchase"]) + " " + m["unit"],
-                fmt(m["price"]), fmt(m["cost"]) + " " + currency
-            ])
-        add_table(
-            "4. Quantités de matériaux",
-            ["Matériau", "Base", "Dosage", "Installé", "Pertes",
-             "À acheter", "Prix unit.", "Coût"],
-            material_rows,
-            [2.5*cm, 1.2*cm, 1.3*cm, 1.5*cm, 1.2*cm,
-             1.8*cm, 1.4*cm, 2.0*cm]
+            self.table_materiaux.insert(
+                "", "end",
+                values=(
+                    materiau["nom"],
+                    materiau["unite"],
+                    materiau["dosage"],
+                    materiau["reference"],
+                    round(quantite, 4)
+                )
+            )
+
+    # ---------------- DEVIS ----------------
+
+    def creer_devis(self):
+        ttk.Label(
+            self.page_devis,
+            text="Devis estimatif",
+            font=("Arial", 13, "bold")
+        ).pack(anchor="w", pady=5)
+
+        form = ttk.Frame(self.page_devis)
+        form.pack(fill="x", pady=8)
+
+        self.nom_devis = tk.StringVar()
+        self.unite_devis = tk.StringVar(value="kg")
+        self.quantite_devis = tk.StringVar()
+        self.prix_unitaire = tk.StringVar()
+
+        champs = [
+            ("Nom du matériau", self.nom_devis),
+            ("Unité", self.unite_devis),
+            ("Quantité", self.quantite_devis),
+            ("Prix unitaire", self.prix_unitaire),
+            ("Devise (DH, FCFA, etc.)", self.devise)
+        ]
+
+        for i, (label, variable) in enumerate(champs):
+            ttk.Label(form, text=label).grid(
+                row=i, column=0, sticky="w", padx=5, pady=4
+            )
+            ttk.Entry(
+                form, textvariable=variable, width=28
+            ).grid(row=i, column=1, sticky="w", padx=5, pady=4)
+
+        ttk.Button(
+            form,
+            text="Ajouter au devis",
+            command=self.ajouter_devis
+        ).grid(row=5, column=0, columnspan=2, pady=8)
+
+        self.table_devis = ttk.Treeview(
+            self.page_devis,
+            columns=("nom", "unite", "quantite", "prix", "montant"),
+            show="headings"
         )
 
-        story.append(Paragraph("5. Détail des quantités par élément", styles["SectionTitle"]))
-        for m in data["materials"]:
-            story.append(Paragraph(
-                f"<b>{m['name']}</b> — dosage {fmt(m['dosage'])} par {m['basis']}",
-                styles["BodyText"]
-            ))
-            detail_rows = []
-            for d in m["details"]:
-                detail_rows.append([
-                    d["geometry"], fmt(d["base_quantity"]), fmt(d["quantity"]) + " " + m["unit"]
+        for col, titre in [
+            ("nom", "Matériau"),
+            ("unite", "Unité"),
+            ("quantite", "Quantité"),
+            ("prix", "Prix unitaire"),
+            ("montant", "Montant")
+        ]:
+            self.table_devis.heading(col, text=titre)
+            self.table_devis.column(col, width=145)
+
+        self.table_devis.pack(fill="both", expand=True, pady=8)
+
+        self.label_total = ttk.Label(
+            self.page_devis,
+            text="Total : 0",
+            font=("Arial", 13, "bold")
+        )
+        self.label_total.pack(anchor="e", pady=6)
+
+        boutons = ttk.Frame(self.page_devis)
+        boutons.pack(fill="x")
+
+        ttk.Button(
+            boutons,
+            text="Actualiser le total",
+            command=self.actualiser_total
+        ).pack(side="left", padx=5)
+
+        ttk.Button(
+            boutons,
+            text="Exporter en CSV",
+            command=self.exporter_csv
+        ).pack(side="left", padx=5)
+
+    def ajouter_devis(self):
+        try:
+            nom = self.nom_devis.get().strip()
+            unite = self.unite_devis.get().strip()
+            quantite = float(
+                self.quantite_devis.get().replace(",", ".")
+            )
+            prix = float(
+                self.prix_unitaire.get().replace(",", ".")
+            )
+
+            if not nom or not unite:
+                raise ValueError("Saisis le nom et l'unité.")
+
+            if quantite < 0 or prix < 0:
+                raise ValueError(
+                    "La quantité et le prix doivent être positifs ou nuls."
+                )
+
+            article = {
+                "nom": nom,
+                "unite": unite,
+                "quantite": quantite,
+                "prix": prix
+            }
+
+            self.devis.append(article)
+
+            self.table_devis.insert(
+                "", "end",
+                values=(
+                    nom,
+                    unite,
+                    quantite,
+                    prix,
+                    round(quantite * prix, 2)
+                )
+            )
+
+            self.actualiser_total()
+            self.nom_devis.set("")
+            self.quantite_devis.set("")
+            self.prix_unitaire.set("")
+
+        except ValueError as erreur:
+            messagebox.showerror("Erreur", str(erreur))
+
+    def actualiser_total(self):
+        total = sum(
+            article["quantite"] * article["prix"]
+            for article in self.devis
+        )
+
+        self.label_total.configure(
+            text=f"Total : {total:.2f} {self.devise.get()}"
+        )
+
+    def exporter_csv(self):
+        chemin = filedialog.asksaveasfilename(
+            title="Enregistrer le devis",
+            defaultextension=".csv",
+            filetypes=[("Fichier CSV", "*.csv")]
+        )
+
+        if not chemin:
+            return
+
+        try:
+            with open(
+                chemin, "w", newline="", encoding="utf-8-sig"
+            ) as fichier:
+                writer = csv.writer(fichier, delimiter=";")
+
+                writer.writerow([
+                    "Matériau", "Unité", "Quantité",
+                    "Prix unitaire", "Montant"
                 ])
-            add_table(
-                "Calcul par élément",
-                ["Élément géométrique", "Base utilisée", "Quantité de matériau"],
-                detail_rows,
-                [7*cm, 4*cm, 5*cm]
+
+                for article in self.devis:
+                    writer.writerow([
+                        article["nom"],
+                        article["unite"],
+                        article["quantite"],
+                        article["prix"],
+                        article["quantite"] * article["prix"]
+                    ])
+
+                total = sum(
+                    article["quantite"] * article["prix"]
+                    for article in self.devis
+                )
+
+                writer.writerow([])
+                writer.writerow(["Devise", self.devise.get()])
+                writer.writerow(["TOTAL", total])
+
+            messagebox.showinfo(
+                "Export terminé",
+                "Le devis a été exporté en CSV."
             )
 
-        other_rows = [[
-            c["name"], fmt(c["quantity"]), c["unit"],
-            fmt(c["price"]), fmt(c["total"]) + " " + currency
-        ] for c in data["other_costs"]]
-        add_table(
-            "6. Main-d'œuvre et autres dépenses",
-            ["Désignation", "Quantité", "Unité", "Prix unit.", "Montant"],
-            other_rows, [5*cm, 2*cm, 2*cm, 3*cm, 4*cm]
-        )
-
-        totals = [
-            ["Coût des matériaux", fmt(data["material_total"]) + " " + currency],
-            ["Autres dépenses", fmt(data["other_total"]) + " " + currency],
-            ["COÛT TOTAL ESTIMATIF", fmt(data["grand_total"]) + " " + currency]
-        ]
-        add_table("7. Récapitulatif financier", ["Désignation", "Montant"], totals,
-                  [9*cm, 6*cm])
-
-    else:
-        story.append(Paragraph("Objet du devis", styles["SectionTitle"]))
-        story.append(Paragraph(
-            f"Estimation des quantités et des coûts pour le projet : {data['project_name']}.",
-            styles["BodyText"]
-        ))
-
-        rows = []
-        for m in data["materials"]:
-            rows.append([
-                "Matériau", m["name"], fmt(m["purchase"]), m["unit"],
-                fmt(m["price"]), fmt(m["cost"])
-            ])
-        for c in data["other_costs"]:
-            rows.append([
-                "Prestation / dépense", c["name"], fmt(c["quantity"]), c["unit"],
-                fmt(c["price"]), fmt(c["total"])
-            ])
-
-        add_table(
-            "Détail estimatif",
-            ["Type", "Désignation", "Quantité", "Unité", "Prix unitaire", "Montant"],
-            rows,
-            [2.5*cm, 4.0*cm, 2.0*cm, 1.5*cm, 2.5*cm, 3.0*cm]
-        )
-
-        totals = [
-            ["Sous-total matériaux", fmt(data["material_total"]) + " " + currency],
-            ["Sous-total prestations et autres coûts", fmt(data["other_total"]) + " " + currency],
-            ["TOTAL ESTIMATIF", fmt(data["grand_total"]) + " " + currency]
-        ]
-        add_table("Récapitulatif du devis", ["Désignation", "Montant"], totals,
-                  [9*cm, 6*cm])
-
-        story.append(Spacer(1, 20))
-        story.append(Paragraph(
-            "Devis estimatif à valider avant engagement. Les prix, quantités, pertes et conditions "
-            "d'exécution doivent être vérifiés. Ce document ne constitue pas une facture.",
-            styles["SmallText"]
-        ))
-
-    def page_footer(canvas, document):
-        canvas.saveState()
-        canvas.setStrokeColor(colors.HexColor("#dce4ee"))
-        canvas.line(1.6*cm, 1.35*cm, A4[0]-1.6*cm, 1.35*cm)
-        canvas.setFont("Helvetica", 8)
-        canvas.setFillColor(colors.HexColor("#66758a"))
-        canvas.drawString(1.6*cm, 0.9*cm, "BATI-IA — Réalisé par Moïse")
-        canvas.drawRightString(A4[0]-1.6*cm, 0.9*cm, f"Page {document.page}")
-        canvas.restoreState()
-
-    doc.build(story, onFirstPage=page_footer, onLaterPages=page_footer)
-    buffer.seek(0)
-    return buffer
+        except OSError as erreur:
+            messagebox.showerror("Erreur d'export", str(erreur))
 
 
-# =========================================================
-# ROUTES FLASK
-# =========================================================
-
-@app.route("/", methods=["GET", "POST"])
-def home():
-    data = None
-
-    if request.method == "POST":
-        data = read_project(request.form)
-        session["bati_ia_data"] = data
-
-    else:
-        data = session.get("bati_ia_data")
-
-    return render_template_string(PAGE, data=data, fmt=fmt)
-
-
-@app.route("/pdf/<document_type>")
-def download_pdf(document_type):
-    if document_type not in ("rapport", "devis"):
-        return "Type de document inconnu.", 404
-
-    data = session.get("bati_ia_data")
-    if not data:
-        return (
-            "Aucun calcul enregistré. Retourne sur la page BATI-IA, "
-            "renseigne le projet puis clique sur « Calculer tous les résultats ».",
-            400
-        )
-
-    pdf = make_pdf(data, document_type)
-    project = "".join(
-        ch if ch.isalnum() or ch in "-_" else "_"
-        for ch in data["project_name"]
-    )[:60]
-
-    if document_type == "rapport":
-        filename = f"BATI-IA_Rapport_{project}.pdf"
-    else:
-        filename = f"BATI-IA_Devis_{project}.pdf"
-
-    return send_file(
-        pdf,
-        mimetype="application/pdf",
-        as_attachment=True,
-        download_name=filename
-    )
+def main():
+    root = tk.Tk()
+    BatiIA(root)
+    root.mainloop()
 
 
 if __name__ == "__main__":
-    print("BATI-IA démarre...")
-    print("Ouvre ensuite : http://127.0.0.1:5000")
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    main()
